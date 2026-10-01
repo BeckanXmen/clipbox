@@ -1,0 +1,36 @@
+# Blueprint de Render: crea backend (Docker) y frontend (sitio estático), ambos en plan gratuito.
+services:
+  - type: web
+    name: clipbox-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: REQUIRE_AUTH
+        value: "true"
+      - key: YT_DLP_PATH
+        value: yt-dlp
+      - key: ALLOWED_ORIGINS      # URL del frontend, p. ej. https://clipbox-web.onrender.com
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+  - type: web
+    name: clipbox-web
+    runtime: static
+    buildCommand: node scripts/build-config.js
+    staticPublishPath: ./frontend
+    envVars:
+      - key: API_URL              # URL del backend, p. ej. https://clipbox-api.onrender.com
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: REQUIRE_LOGIN
+        value: "true"

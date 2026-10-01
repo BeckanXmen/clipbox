@@ -1,0 +1,49 @@
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+/* Temas por plataforma */
+:root,[data-p="youtube"]{--bg:#140606;--card:#221010;--ink:#fff3f3;--mut:#d9a5a5;--a:#ff1f1f;--b:#b80000;--glow:rgba(255,31,31,.35);--grad:linear-gradient(135deg,#ff1f1f,#a30000)}
+[data-p="instagram"]{--bg:#1b0f26;--card:#2a1838;--ink:#fff0fa;--mut:#d9b6e8;--a:#ff5fb8;--b:#a66bff;--glow:rgba(200,110,255,.35);--grad:linear-gradient(135deg,#ff5fb8,#a66bff)}
+[data-p="tiktok"]{--bg:#000;--card:#0e0e12;--ink:#fff;--mut:#9aa;--a:#ff2bd6;--b:#19f3ff;--glow:rgba(25,243,255,.35);--grad:linear-gradient(135deg,#ff2bd6,#19f3ff)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;transition:background .4s,color .4s}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(600px 300px at 80% -10%,var(--glow),transparent 70%),radial-gradient(500px 300px at 0% 100%,var(--glow),transparent 70%);pointer-events:none}
+.wrap{position:relative;max-width:720px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 20px}
+.logo{font-weight:800;font-size:22px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+button{font:inherit;cursor:pointer;border:0}
+.btn{background:var(--grad);color:#fff;padding:10px 18px;border-radius:12px;font-weight:700;box-shadow:0 0 18px var(--glow)}
+[data-p="tiktok"] .btn{color:#000}
+.ghost{background:transparent;color:var(--ink);border:1px solid var(--a);padding:8px 14px;border-radius:12px}
+.user{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mut)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.tab{background:var(--card);color:var(--mut);padding:12px 6px;border-radius:14px;font-weight:700;border:2px solid transparent}
+.tab.on{color:var(--ink);border-color:var(--a);box-shadow:0 0 16px var(--glow)}
+.card{background:var(--card);border-radius:20px;padding:20px;border:1px solid color-mix(in srgb,var(--a) 40%,transparent);box-shadow:0 0 30px var(--glow)}
+h1{font-size:24px;margin:0 0 6px}
+p.s{color:var(--mut);margin:0 0 16px;font-size:14px}
+input{width:100%;padding:14px;border-radius:12px;border:1px solid var(--a);background:rgba(255,255,255,.06);color:var(--ink);font:inherit;outline:none}
+input:focus{box-shadow:0 0 0 3px var(--glow)}
+.fmts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.fmt{background:rgba(255,255,255,.05);color:var(--ink);padding:14px 6px;border-radius:14px;border:2px solid transparent;text-align:center}
+.fmt b{display:block;font-size:18px}.fmt small{color:var(--mut)}
+.fmt.on{border-color:var(--b);background:color-mix(in srgb,var(--b) 18%,transparent)}
+.go{width:100%;padding:15px;font-size:16px}
+#msg{margin-top:14px;padding:12px;border-radius:12px;font-size:14px;display:none}
+#msg.ok{display:block;background:rgba(40,200,120,.15);color:#7dffb5}
+#msg.err{display:block;background:rgba(255,80,80,.15);color:#ffb0b0}
+.note{font-size:12px;color:var(--mut);margin-top:16px;text-align:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal.show{display:flex}
+.box{background:var(--card);border:1px solid var(--a);border-radius:20px;padding:22px;width:100%;max-width:380px;box-shadow:0 0 30px var(--glow)}
+.box input{margin-bottom:10px}
+.link{background:none;color:var(--b);text-decoration:underline;padding:0}
+
+/* ===== Añadidos de la versión con backend (el diseño original no se modifica) ===== */
+#msg.busy{display:block;background:color-mix(in srgb,var(--b) 18%,transparent);color:var(--ink)}
+#msg.busy::after{content:"";display:inline-block;width:.9em;height:.9em;margin-left:.5em;border:2px solid var(--b);border-top-color:transparent;border-radius:50%;vertical-align:-.1em;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.go:disabled{opacity:.55;cursor:wait}
+.gbtn{width:100%;margin-top:10px;padding:11px}
+.sep{text-align:center;color:var(--mut);font-size:12px;margin:12px 0 0}
+.box small.info{display:block;color:var(--mut);font-size:13px;margin-bottom:10px;word-break:break-all}
+

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SaveClip - Descargador de videos</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-p="youtube">
+<div class="wrap">
+  <header>
+    <div class="logo">⬇ SaveClip</div>
+    <div id="auth"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab on" data-p="youtube">▶ YouTube</button>
+    <button class="tab" data-p="instagram">◎ Instagram</button>
+    <button class="tab" data-p="tiktok">♪ TikTok</button>
+  </div>
+
+  <div class="card">
+    <h1 id="title">Descarga de YouTube</h1>
+    <p class="s">Pega el enlace del video y elige el formato.</p>
+    <input id="url" type="url" placeholder="https://..." autocomplete="off">
+    <div class="fmts">
+      <button class="fmt on" data-f="mp4"><b>MP4</b><small>Video</small></button>
+      <button class="fmt" data-f="hd"><b>HD</b><small>Máx. calidad</small></button>
+      <button class="fmt" data-f="mp3"><b>MP3</b><small>Solo audio</small></button>
+    </div>
+    <button class="btn go" id="dl">Descargar</button>
+    <div id="msg"></div>
+    <p class="note">Descarga solo contenido propio o con permiso del autor. Respeta los términos de cada plataforma.</p>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h2 id="mt" style="margin-top:0">Iniciar sesión</h2>
+    <input id="nm" placeholder="Nombre" style="display:none">
+    <input id="em" type="email" placeholder="Correo">
+    <input id="pw" type="password" placeholder="Contraseña (mín. 8)" autocomplete="current-password">
+    <div id="me" style="color:#ffb0b0;font-size:13px;min-height:18px"></div>
+    <button class="btn" id="mgo" style="width:100%">Entrar</button>
+    <p class="sep">o</p>
+    <button class="ghost gbtn" id="gg">Continuar con Google</button>
+    <p style="text-align:center;font-size:13px;margin:10px 0 0"><button class="link" id="fg">¿Olvidaste tu contraseña?</button></p>
+    <p style="text-align:center;font-size:13px;margin:12px 0 0"><button class="link" id="sw">¿No tienes cuenta? Regístrate</button> · <button class="link" id="cl">Cerrar</button></p>
+  </div>
+</div>
+
+<div class="modal" id="pmodal"><div class="box">
+  <h2 style="margin-top:0">Tu perfil</h2>
+  <small class="info" id="pe"></small>
+  <input id="pn" placeholder="Nombre o usuario">
+  <div id="pm" style="color:#7dffb5;font-size:13px;min-height:18px"></div>
+  <button class="btn" id="ps" style="width:100%">Guardar nombre</button>
+  <p style="text-align:center;font-size:13px;margin:12px 0 0"><button class="link" id="po">Cerrar sesión</button> · <button class="link" id="pc">Cerrar</button></p>
+</div></div>
+<div class="modal" id="rmodal"><div class="box">
+  <h2 style="margin-top:0">Nueva contraseña</h2>
+  <input id="rp" type="password" placeholder="Nueva contraseña (mín. 8)" autocomplete="new-password">
+  <div id="rm" style="color:#ffb0b0;font-size:13px;min-height:18px"></div>
+  <button class="btn" id="rs" style="width:100%">Guardar</button>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
