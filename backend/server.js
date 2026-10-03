@@ -18,14 +18,25 @@ const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 const TMP = path.join(os.tmpdir(), 'clipbox');
 fs.mkdirSync(TMP, { recursive: true });
 
+// Configuración opcional de cookies de YouTube para saltar bloqueos en la nube
+const cookiesPath = path.join(os.tmpdir(), 'yt_cookies.txt');
+if (process.env.YT_COOKIES) {
+  try {
+    fs.writeFileSync(cookiesPath, process.env.YT_COOKIES.replace(/\\n/g, '\n'), 'utf8');
+    console.log('Cookies de YouTube cargadas correctamente.');
+  } catch (err) {
+    console.error('Error al guardar las cookies:', err);
+  }
+}
+
 const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY) : null;
 if (REQUIRE_AUTH && !supabase) console.warn('REQUIRE_AUTH=true pero falta configurar Supabase: nadie podrá descargar.');
 
 const app = express();
-app.set('trust proxy', 1); // Render va detrás de un proxy: necesario para el rate limit por IP real
+app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-const origins = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean); // tolera "/" final
+const origins = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean);
 if (!origins.length) console.warn('ALLOWED_ORIGINS vacío: el navegador no podrá llamar a la API.');
 app.use(cors({ origin: origins.length ? origins : false, exposedHeaders: ['Content-Disposition'] }));
 app.use(express.json({ limit: '10kb' }));
@@ -59,14 +70,13 @@ function friendlyError(stderr = '') {
 async function auth(req, res, next) {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7).trim() : null;
-  if (REQUIRE_AUTH && !supabase)   // mala configuración del servidor: nunca dejar pasar a nadie
+  if (REQUIRE_AUTH && !supabase)
     return res.status(500).json({ error: 'El servidor no tiene configurado Supabase (SUPABASE_URL / SUPABASE_ANON_KEY).' });
   if (token && supabase) {
     try {
-      // Supabase valida firma, caducidad y usuario. No se confía en nada que diga el frontend.
       const { data, error } = await supabase.auth.getUser(token);
       if (data?.user) req.user = data.user;
-      else if (error && (!error.status || error.status >= 500))   // Supabase inalcanzable != token malo
+      else if (error && (!error.status || error.status >= 500))
         return res.status(503).json({ error: 'No se pudo verificar tu sesión. Inténtalo en unos segundos.' });
     } catch {
       return res.status(503).json({ error: 'No se pudo verificar tu sesión. Inténtalo en unos segundos.' });
@@ -85,8 +95,13 @@ function validate(req, res, next) {
   next();
 }
 
-// Sin cookies, sin proxies, sin saltar controles: solo contenido público.
-const BASE = ['--no-playlist', '--no-warnings', '--socket-timeout', '15'];
+// Añadimos el parámetro de cookies si el archivo temporal existe
+const BASE = [
+  '--no-playlist', 
+  '--no-warnings', 
+  '--socket-timeout', '15',
+  ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
+];
 
 app.get('/api/health', (_, res) => res.json({ ok: true, authRequired: REQUIRE_AUTH }));
 
