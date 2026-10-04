@@ -99,10 +99,18 @@ async function call(path, body) {
   if (!r.ok) { const err = new Error(d.error || "Error inesperado del servidor."); err.status = r.status; throw err; }
   return d;
 }
+
 $("#dl").onclick = async () => {
   const u = $("#url").value.trim();
   if (window.APP_CONFIG.REQUIRE_LOGIN && !Auth.configured) return show(Auth.notReady(), "err");
-  if (window.APP_CONFIG.REQUIRE_LOGIN && !user) { show("Inicia sesión para descargar.", "err"); return openModal("login"); }
+  
+  // Verificación robusta mediante token real para evitar bucles o falsos bloqueos de sesión
+  const currentToken = await Auth.token();
+  if (window.APP_CONFIG.REQUIRE_LOGIN && !user && !currentToken) { 
+    show("Inicia sesión para descargar.", "err"); 
+    return openModal("login"); 
+  }
+
   if (!/^https?:\/\//i.test(u)) return show("Pega un enlace válido.", "err");
   const d = detect(u);
   if (!d) return show("Solo se admiten enlaces de YouTube, Instagram y TikTok.", "err");
@@ -118,12 +126,9 @@ $("#dl").onclick = async () => {
     
     show("¡Listo! Descargando...", "ok");
 
-    // SOLUCIÓN ÓPTIMA: Generamos un enlace directo con el token de autorización embebido
-    // o abrimos la URL del archivo para que el navegador maneje la descarga en segundo plano de manera nativa.
     const token = await Auth.token();
     const downloadUrl = `${API_URL}/api/file/${job.id}${token ? '?token=' + encodeURIComponent(token) : ''}`;
     
-    // Creamos un link invisible para forzar la descarga nativa del navegador
     const a = document.createElement("a");
     a.href = downloadUrl;
     a.download = job.filename || "video";
@@ -139,3 +144,10 @@ $("#dl").onclick = async () => {
     $("#dl").disabled = false;
   }
 };
+
+// Inicialización de la sesión al cargar la página
+Auth.init((u) => {
+  renderAuth(u);
+}, () => {
+  $("#rmodal").classList.add("show");
+});
