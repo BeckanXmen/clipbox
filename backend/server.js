@@ -102,9 +102,10 @@ function validate(req, res, next) {
 const BASE = [
   '--no-playlist', 
   '--no-warnings', 
-  '--socket-timeout', '15',
+  '--socket-timeout', '20',
   '--age-limit', '99',
-  '--extractor-args', 'youtube:player_client=ios,web',
+  '--extractor-args', 'youtube:player_client=ios,mweb',
+  '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
 
