@@ -18,12 +18,17 @@ const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 const TMP = path.join(os.tmpdir(), 'clipbox');
 fs.mkdirSync(TMP, { recursive: true });
 
-// Configuración opcional de cookies de YouTube para saltar bloqueos en la nube
+// Configuración robusta de cookies de YouTube para Render
 const cookiesPath = path.join(os.tmpdir(), 'yt_cookies.txt');
 if (process.env.YT_COOKIES) {
   try {
-    fs.writeFileSync(cookiesPath, process.env.YT_COOKIES.replace(/\\n/g, '\n'), 'utf8');
-    console.log('Cookies de YouTube cargadas correctamente.');
+    let rawCookies = process.env.YT_COOKIES.trim();
+    // Si Render escapó los saltos de línea, los convertimos de nuevo
+    if (rawCookies.includes('\\n')) {
+      rawCookies = rawCookies.replace(/\\n/g, '\n');
+    }
+    fs.writeFileSync(cookiesPath, rawCookies, 'utf8');
+    console.log('Cookies de YouTube cargadas y formateadas correctamente.');
   } catch (err) {
     console.error('Error al guardar las cookies:', err);
   }
