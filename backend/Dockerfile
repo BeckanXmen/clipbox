@@ -1,12 +1,12 @@
 # Backend Clipbox para Render: Node + yt-dlp + ffmpeg
 FROM node:22-slim
 
-# Instalar ffmpeg, python3, pip, curl
+# Instalar ffmpeg, python3, curl y descargar el binario oficial de yt-dlp
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg python3 python3-pip python3-dev ca-certificates curl \
+ && apt-get install -y --no-install-recommends ffmpeg python3 ca-certificates curl \
  && ln -s /usr/bin/python3 /usr/bin/python \
- && python3 -m pip install --no-cache-dir --upgrade pip \
- && python3 -m pip install --no-cache-dir --upgrade yt-dlp \
+ && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+ && chmod a+rx /usr/local/bin/yt-dlp \
  && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
