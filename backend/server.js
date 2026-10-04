@@ -23,7 +23,6 @@ const cookiesPath = path.join(os.tmpdir(), 'yt_cookies.txt');
 if (process.env.YT_COOKIES) {
   try {
     let rawCookies = process.env.YT_COOKIES.trim();
-    // Si Render escapó los saltos de línea, los convertimos de nuevo
     if (rawCookies.includes('\\n')) {
       rawCookies = rawCookies.replace(/\\n/g, '\n');
     }
@@ -121,13 +120,10 @@ app.post('/api/analyze', auth, validate, async (req, res) => {
     const i = JSON.parse(stdout);
     res.json({ platform: req.media.platform, title: i.title || 'Sin título', thumbnail: i.thumbnail || null,
       duration: i.duration || null, uploader: i.uploader || null });
-} catch (e) {
+  } catch (e) {
     const rawError = e.stderr || e.message || 'Error desconocido';
     console.error('--- ERROR EN ANALYZE ---', rawError);
     res.status(422).json({ error: rawError });
-  }  } catch (e) {
-    console.error('--- ERROR EN ANALYZE ---', e.stderr || e.message);
-    res.status(422).json({ error: friendlyError(e.stderr || e.message) });
   }
 });
 
@@ -156,9 +152,9 @@ app.post('/api/download', auth, validate, async (req, res) => {
     files.set(id, { file, dir, name: path.basename(file), user: req.user?.id || null, expires: Date.now() + 10 * 60_000 });
     res.json({ id, filename: path.basename(file) });
   } catch (e) {
-    console.error('--- ERROR EN DOWNLOAD ---', e.stderr || e.message);
-    fs.rmSync(dir, { recursive: true, force: true });
-    res.status(422).json({ error: friendlyError(e.stderr || e.message) });
+    const rawError = e.stderr || e.message || 'Error desconocido';
+    console.error('--- ERROR EN DOWNLOAD ---', rawError);
+    res.status(422).json({ error: rawError });
   } finally { active--; }
 });
 
