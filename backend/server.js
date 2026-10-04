@@ -101,7 +101,7 @@ const BASE = [
   '--no-warnings', 
   '--socket-timeout', '15',
   '--age-limit', '99',
-  '--extractor-args', 'youtube:player_client=android,web',
+  '--extractor-args', 'youtube:player_client=android,mweb,web',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
 app.get('/api/health', (_, res) => res.json({ ok: true, authRequired: REQUIRE_AUTH }));
