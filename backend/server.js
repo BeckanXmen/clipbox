@@ -68,18 +68,23 @@ function friendlyError(stderr = '') {
 }
 
 async function auth(req, res, next) {
-  const h = req.headers.authorization || '';
-  const token = h.startsWith('Bearer ') ? h.slice(7).trim() : null;
+  // Buscamos el token en la cabecera (Bearer) O en los parámetros de la URL (?token=...)
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') 
+    ? authHeader.slice(7).trim() 
+    : (req.query.token || null);
+
   if (REQUIRE_AUTH && !supabase)
-    return res.status(500).json({ error: 'El servidor no tiene configurado Supabase (SUPABASE_URL / SUPABASE_ANON_KEY).' });
+    return res.status(500).json({ error: 'El servidor no tiene configurado Supabase.' });
+  
   if (token && supabase) {
     try {
       const { data, error } = await supabase.auth.getUser(token);
       if (data?.user) req.user = data.user;
       else if (error && (!error.status || error.status >= 500))
-        return res.status(503).json({ error: 'No se pudo verificar tu sesión. Inténtalo en unos segundos.' });
+        return res.status(503).json({ error: 'No se pudo verificar tu sesión.' });
     } catch {
-      return res.status(503).json({ error: 'No se pudo verificar tu sesión. Inténtalo en unos segundos.' });
+      return res.status(503).json({ error: 'No se pudo verificar tu sesión.' });
     }
   }
   if (REQUIRE_AUTH && !req.user) return res.status(401).json({ error: 'Inicia sesión para descargar.' });
