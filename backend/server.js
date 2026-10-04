@@ -13,8 +13,10 @@ const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
 const run = promisify(execFile);
-const YT = process.env.YT_DLP_PATH || 'yt-dlp';
-const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
+const path = require('path');
+const fs = require('fs');
+// Apuntar yt-dlp a una versión local autogestionada si Render no la actualiza
+const YT = process.env.YT_DLP_PATH || path.join(os.tmpdir(), 'yt-dlp');const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 const TMP = path.join(os.tmpdir(), 'clipbox');
 fs.mkdirSync(TMP, { recursive: true });
 
