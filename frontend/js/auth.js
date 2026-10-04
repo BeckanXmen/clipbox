@@ -24,7 +24,6 @@
     validation_failed: 'Revisa el correo y la contraseña.',
     session_not_found: 'Tu sesión expiró. Inicia sesión de nuevo.'
   };
-
   // Convierte CUALQUIER error (objeto, string, excepción) en un string legible.
   function text(e, fallback) {
     if (!e) return fallback;
@@ -39,12 +38,10 @@
     if (/failed to fetch|network/i.test(m)) return 'No se pudo conectar con el servicio de cuentas. Revisa tu conexión.';
     return fallback;
   }
-
   function notReady() {
     if (!libOk) return 'No se pudo cargar el servicio de cuentas. Revisa tu conexión a internet.';
     return 'Las cuentas no están configuradas: completa SUPABASE_URL y SUPABASE_ANON_KEY en js/config.js.';
   }
-
   async function wrap(fn, fallback) {
     if (!ok) return { error: notReady() };
     try {
@@ -59,13 +56,7 @@
     user: null,
     async init(onChange, onRecovery) {
       if (!ok) return onChange(null);
-
-      // Limpiar los tokens de Google de la URL para evitar bucles de recarga
-      if (window.location.hash && window.location.hash.includes('access_token')) {
-        window.history.replaceState(null, document.title, window.location.pathname);
-      }
-
-      sb.auth.onAuthStateChange((ev, s) => {   
+      sb.auth.onAuthStateChange((ev, s) => {   // sin llamadas a Supabase aquí dentro (evita bloqueos)
         this.user = s?.user || null;
         if (ev === 'PASSWORD_RECOVERY') onRecovery();
         onChange(this.user);
@@ -75,7 +66,6 @@
       onChange(this.user);
     },
     name: u => u?.user_metadata?.display_name || u?.user_metadata?.full_name || u?.email?.split('@')[0] || '',
-    
     // Token vigente (supabase-js lo renueva solo). Si no hay sesión → null.
     async token() {
       if (!ok) return null;
@@ -83,6 +73,7 @@
     },
     signUp: (name, email, password) => wrap(async () => {
       const r = await sb.auth.signUp({ email, password, options: { data: { display_name: name }, emailRedirectTo: here() } });
+      // Con confirmación de correo activa, Supabase no da error si el correo ya existe: devuelve identities vacío.
       if (!r.error && r.data?.user && Array.isArray(r.data.user.identities) && r.data.user.identities.length === 0)
         return { error: { code: 'user_already_exists' } };
       return r;
