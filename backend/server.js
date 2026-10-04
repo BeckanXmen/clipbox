@@ -95,11 +95,12 @@ function validate(req, res, next) {
   next();
 }
 
-// Añadimos el parámetro de cookies si el archivo temporal existe
+// Añadimos el parámetro de cookies y la omisión de restricción de edad
 const BASE = [
   '--no-playlist', 
   '--no-warnings', 
   '--socket-timeout', '15',
+  '--age-limit', '99',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
 
