@@ -108,30 +108,34 @@ $("#dl").onclick = async () => {
   if (!d) return show("Solo se admiten enlaces de YouTube, Instagram y TikTok.", "err");
   setPlatform(d);
   $("#dl").disabled = true;
+  
   try {
     show("Analizando", "busy");
     const info = await call("/api/analyze", { url: u });
-    show("Procesando", "busy");
+    
+    show("Procesando (esto puede tardar unos segundos)...", "busy");
     const job = await call("/api/download", { url: u, format: fmt });
-    show("Preparando descarga", "busy");
-    const r = await fetch(`${API_URL}/api/file/${job.id}`, { headers: await authHeaders() });
-    if (!r.ok) { const err = new Error((await r.json().catch(() => ({}))).error || "No se pudo obtener el archivo."); err.status = r.status; throw err; }
+    
+    show("¡Listo! Descargando...", "ok");
+
+    // SOLUCIÓN ÓPTIMA: Generamos un enlace directo con el token de autorización embebido
+    // o abrimos la URL del archivo para que el navegador maneje la descarga en segundo plano de manera nativa.
+    const token = await Auth.token();
+    const downloadUrl = `${API_URL}/api/file/${job.id}${token ? '?token=' + encodeURIComponent(token) : ''}`;
+    
+    // Creamos un link invisible para forzar la descarga nativa del navegador
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(await r.blob()); a.download = job.filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    show("Completado: " + info.title, "ok");
-  } catch (e) { show(e.message, "err"); if (e.status === 401) openModal("login"); }
-  $("#dl").disabled = false;
+    a.href = downloadUrl;
+    a.download = job.filename || "video";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    show("Completado: " + (info.title || "Descarga iniciada"), "ok");
+  } catch (e) {
+    show(e.message, "err"); 
+    if (e.status === 401) openModal("login");
+  } finally {
+    $("#dl").disabled = false;
+  }
 };
-
-// Si Google/Supabase devuelve un error en la URL al volver a Clipbox, mostrarlo en el modal.
-(function () {
-  const p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
-  if (!p.get("error")) return;
-  history.replaceState(null, "", location.pathname);
-  openModal("login");
-  meMsg(p.get("error_code") === "otp_expired" ? "El enlace expiró. Solicita uno nuevo." : "No se pudo iniciar sesión con Google.");
-})();
-
-Auth.init(renderAuth, () => $("#rmodal").classList.add("show"));
