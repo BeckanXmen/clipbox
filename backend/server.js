@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { execFile } = require('child_process');
+const { execFile, execSync } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs');
 const os = require('os');
@@ -14,6 +14,15 @@ const { createClient } = require('@supabase/supabase-js');
 
 const run = promisify(execFile);
 const YT = process.env.YT_DLP_PATH || 'yt-dlp';
+
+// Forzar actualización automática de yt-dlp al iniciar el servidor para evitar bloqueos de YouTube
+try {
+  console.log('Actualizando yt-dlp a la última versión...');
+  execSync(`${YT} -U`, { stdio: 'inherit' });
+} catch (err) {
+  console.warn('No se pudo actualizar yt-dlp automáticamente, usando versión instalada:', err.message);
+}
+
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 const TMP = path.join(os.tmpdir(), 'clipbox');
 fs.mkdirSync(TMP, { recursive: true });
@@ -68,7 +77,6 @@ function friendlyError(stderr = '') {
 }
 
 async function auth(req, res, next) {
-  // Buscamos el token en la cabecera (Bearer) O en los parámetros de la URL (?token=...)
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') 
     ? authHeader.slice(7).trim() 
@@ -100,70 +108,12 @@ function validate(req, res, next) {
   next();
 }
 
+// Actualizamos los argumentos para usar los clientes de YouTube más estables y recientes
 const BASE = [
   '--no-playlist', 
   '--no-warnings', 
   '--socket-timeout', '15',
   '--age-limit', '99',
-  '--extractor-args', 'youtube:player_client=ios,web',
+  '--extractor-args', 'youtube:player_client=ios,android,web',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
-
-app.get('/api/health', (_, res) => res.json({ ok: true, authRequired: REQUIRE_AUTH }));
-
-app.post('/api/analyze', auth, validate, async (req, res) => {
-  try {
-    const { stdout } = await run(YT, [...BASE, '-J', '--', req.media.url], { timeout: 45_000, maxBuffer: 20e6 });
-    const i = JSON.parse(stdout);
-    res.json({ platform: req.media.platform, title: i.title || 'Sin título', thumbnail: i.thumbnail || null,
-      duration: i.duration || null, uploader: i.uploader || null });
-  } catch (e) {
-    console.error('--- ERROR EN ANALYZE ---', e.stderr || e.message);
-    res.status(422).json({ error: friendlyError(e.stderr || e.message) });
-  }
-});
-
-const FORMATS = {
-  mp3: ['-x', '--audio-format', 'mp3', '--audio-quality', '0'],
-  mp4: ['-f', 'b[height<=720][ext=mp4]/b[height<=720]/b', '--merge-output-format', 'mp4'],
-  hd:  ['-f', 'bv*[height<=1080]+ba/b[height<=1080]/b', '--merge-output-format', 'mp4'],
-};
-const files = new Map();
-let active = 0;
-
-app.post('/api/download', auth, validate, async (req, res) => {
-  const fmt = FORMATS[req.body?.format];
-  if (!fmt) return res.status(400).json({ error: 'Formato no válido. Elige mp3, mp4 o hd.' });
-  if (active >= 3) return res.status(429).json({ error: 'El servidor está ocupado. Inténtalo en unos segundos.' });
-  active++;
-  const id = crypto.randomUUID();
-  const dir = path.join(TMP, id);
-  try {
-    fs.mkdirSync(dir);
-    const { stdout } = await run(YT, [...BASE, ...fmt, '--max-filesize', '500M',
-      '-o', path.join(dir, '%(title).80B.%(ext)s'), '--print', 'after_move:filepath', '--', req.media.url],
-      { timeout: 180_000, maxBuffer: 10e6 });
-    const file = stdout.trim().split('\n').pop();
-    if (!file || !fs.existsSync(file)) throw new Error('sin archivo');
-    files.set(id, { file, dir, name: path.basename(file), user: req.user?.id || null, expires: Date.now() + 10 * 60_000 });
-    res.json({ id, filename: path.basename(file) });
-  } catch (e) {
-    console.error('--- ERROR EN DOWNLOAD ---', e.stderr || e.message);
-    fs.rmSync(dir, { recursive: true, force: true });
-    res.status(422).json({ error: friendlyError(e.stderr || e.message) });
-  } finally { active--; }
-});
-
-app.get('/api/file/:id', auth, (req, res) => {
-  const f = files.get(req.params.id);
-  if (!f) return res.status(404).json({ error: 'El archivo expiró. Vuelve a procesar el enlace.' });
-  if (f.user && f.user !== req.user?.id) return res.status(403).json({ error: 'No autorizado.' });
-  res.download(f.file, f.name, () => { files.delete(req.params.id); fs.rmSync(f.dir, { recursive: true, force: true }); });
-});
-
-setInterval(() => {
-  for (const [id, f] of files) if (f.expires < Date.now()) { files.delete(id); fs.rmSync(f.dir, { recursive: true, force: true }); }
-}, 60_000).unref();
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Clipbox API en http://localhost:${PORT}`));
