@@ -1,19 +1,16 @@
-// Clipbox API: Frontend -> API -> yt-dlp -> archivo temporal -> Frontend
+// Clipbox API: Frontend -> API -> yt-dlp-exec -> archivo temporal -> Frontend
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
+const ytdlp = require('yt-dlp-exec');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
-const run = promisify(execFile);
-const YT = process.env.YT_DLP_PATH || 'yt-dlp';
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 const TMP = path.join(os.tmpdir(), 'clipbox');
 fs.mkdirSync(TMP, { recursive: true });
@@ -55,7 +52,7 @@ function detect(u) {
 }
 
 function friendlyError(stderr = '') {
-  const s = stderr.toLowerCase();
+  const s = typeof stderr === 'string' ? stderr.toLowerCase() : JSON.stringify(stderr).toLowerCase();
   if (/private|login required|log in|sign in|members-only|cookies/.test(s))
     return 'Este contenido es privado o requiere iniciar sesión en la plataforma. Solo se pueden procesar enlaces públicos.';
   if (/unavailable|not available|removed|deleted|404/.test(s)) return 'El contenido no está disponible o fue eliminado.';
@@ -95,56 +92,83 @@ function validate(req, res, next) {
   next();
 }
 
-// Añadimos el parámetro de cookies y la omisión de restricción de edad
-const BASE = [
-  '--no-playlist', 
-  '--no-warnings', 
-  '--socket-timeout', '15',
-  '--age-limit', '99',
-  '--extractor-args', 'youtube:player_client=android,mweb,web',
-  ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
-];
+// Parámetros base para ytdlp
+const BASE = {
+  noPlaylist: true,
+  noWarnings: true,
+  socketTimeout: 15,
+  ageLimit: 99,
+  extractorArgs: 'youtube:player_client=android,mweb,web',
+  ...(fs.existsSync(cookiesPath) ? { cookies: cookiesPath } : {})
+};
+
 app.get('/api/health', (_, res) => res.json({ ok: true, authRequired: REQUIRE_AUTH }));
 
 app.post('/api/analyze', auth, validate, async (req, res) => {
   try {
-    const { stdout } = await run(YT, [...BASE, '-J', '--', req.media.url], { timeout: 45_000, maxBuffer: 20e6 });
-    const i = JSON.parse(stdout);
-    res.json({ platform: req.media.platform, title: i.title || 'Sin título', thumbnail: i.thumbnail || null,
-      duration: i.duration || null, uploader: i.uploader || null });
+    const output = await ytdlp(req.media.url, {
+      ...BASE,
+      dumpSingleJson: true,
+    }, { timeout: 45_000 });
+    
+    res.json({ 
+      platform: req.media.platform, 
+      title: output.title || 'Sin título', 
+      thumbnail: output.thumbnail || null,
+      duration: output.duration || null, 
+      uploader: output.uploader || null 
+    });
   } catch (e) {
+    console.error('--- ERROR EN ANALYZE ---', e);
     res.status(422).json({ error: friendlyError(e.stderr || e.message) });
   }
 });
 
-const FORMATS = {
-  mp3: ['-x', '--audio-format', 'mp3', '--audio-quality', '0'],
-  mp4: ['-f', 'b[height<=720][ext=mp4]/b[height<=720]/b', '--merge-output-format', 'mp4'],
-  hd:  ['-f', 'bv*[height<=1080]+ba/b[height<=1080]/b', '--merge-output-format', 'mp4'],
-};
 const files = new Map();
 let active = 0;
 
 app.post('/api/download', auth, validate, async (req, res) => {
-  const fmt = FORMATS[req.body?.format];
-  if (!fmt) return res.status(400).json({ error: 'Formato no válido. Elige mp3, mp4 o hd.' });
+  const formatType = req.body?.format;
+  if (!['mp3', 'mp4', 'hd'].includes(formatType)) {
+    return res.status(400).json({ error: 'Formato no válido. Elige mp3, mp4 o hd.' });
+  }
   if (active >= 3) return res.status(429).json({ error: 'El servidor está ocupado. Inténtalo en unos segundos.' });
+  
   active++;
   const id = crypto.randomUUID();
   const dir = path.join(TMP, id);
+  
   try {
     fs.mkdirSync(dir);
-    const { stdout } = await run(YT, [...BASE, ...fmt, '--max-filesize', '500M',
-      '-o', path.join(dir, '%(title).80B.%(ext)s'), '--print', 'after_move:filepath', '--', req.media.url],
-      { timeout: 180_000, maxBuffer: 10e6 });
-    const file = stdout.trim().split('\n').pop();
+    
+    let options = { ...BASE, maxFilesize: '500M', output: path.join(dir, '%(title).80B.%(ext)s'), print: 'after_move:filepath' };
+
+    if (formatType === 'mp3') {
+      options.extractAudio = true;
+      options.audioFormat = 'mp3';
+      options.audioQuality = 0;
+    } else if (formatType === 'mp4') {
+      options.format = 'b[height<=720][ext=mp4]/b[height<=720]/b';
+      options.mergeOutputFormat = 'mp4';
+    } else if (formatType === 'hd') {
+      options.format = 'bv*[height<=1080]+ba/b[height<=1080]/b';
+      options.mergeOutputFormat = 'mp4';
+    }
+
+    const { stdout } = await ytdlp(req.media.url, options, { timeout: 180_000 });
+    const file = String(stdout || '').trim().split('\n').pop();
+    
     if (!file || !fs.existsSync(file)) throw new Error('sin archivo');
+    
     files.set(id, { file, dir, name: path.basename(file), user: req.user?.id || null, expires: Date.now() + 10 * 60_000 });
     res.json({ id, filename: path.basename(file) });
   } catch (e) {
+    console.error('--- ERROR EN DOWNLOAD ---', e);
     fs.rmSync(dir, { recursive: true, force: true });
     res.status(422).json({ error: friendlyError(e.stderr || e.message) });
-  } finally { active--; }
+  } finally { 
+    active--; 
+  }
 });
 
 app.get('/api/file/:id', auth, (req, res) => {
