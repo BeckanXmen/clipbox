@@ -121,7 +121,11 @@ app.post('/api/analyze', auth, validate, async (req, res) => {
     const i = JSON.parse(stdout);
     res.json({ platform: req.media.platform, title: i.title || 'Sin título', thumbnail: i.thumbnail || null,
       duration: i.duration || null, uploader: i.uploader || null });
-  } catch (e) {
+} catch (e) {
+    const rawError = e.stderr || e.message || 'Error desconocido';
+    console.error('--- ERROR EN ANALYZE ---', rawError);
+    res.status(422).json({ error: rawError });
+  }  } catch (e) {
     console.error('--- ERROR EN ANALYZE ---', e.stderr || e.message);
     res.status(422).json({ error: friendlyError(e.stderr || e.message) });
   }
