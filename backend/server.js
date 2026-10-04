@@ -108,7 +108,7 @@ const BASE = [
   '--no-warnings', 
   '--socket-timeout', '20',
   '--age-limit', '99',
-  '--extractor-args', 'youtube:player_client=web_safari',
+  '--extractor-args', 'youtube:player_client=default,-web_safari',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
 
@@ -129,8 +129,8 @@ app.post('/api/analyze', auth, validate, async (req, res) => {
 
 const FORMATS = {
   mp3: ['-x', '--audio-format', 'mp3', '--audio-quality', '0'],
-  mp4: ['-f', 'b[height<=720]/bv*[height<=720]+ba/best[height<=720]/best', '--merge-output-format', 'mp4'],
-  hd:  ['-f', 'b[height<=1080]/bv*[height<=1080]+ba/best[height<=1080]/best', '--merge-output-format', 'mp4'],
+  mp4: ['-f', 'bv*+ba/best', '--merge-output-format', 'mp4'],
+  hd:  ['-f', 'bv*+ba/best', '--merge-output-format', 'mp4'],
 };
 const files = new Map();
 let active = 0;
