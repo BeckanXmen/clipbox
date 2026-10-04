@@ -129,8 +129,8 @@ app.post('/api/analyze', auth, validate, async (req, res) => {
 
 const FORMATS = {
   mp3: ['-x', '--audio-format', 'mp3', '--audio-quality', '0'],
-  mp4: ['-f', 'bestvideo+bestaudio/best', '--merge-output-format', 'mp4'],
-  hd:  ['-f', 'bestvideo+bestaudio/best', '--merge-output-format', 'mp4'],
+  mp4: ['-f', 'b[height<=720]/bv*[height<=720]+ba/best[height<=720]/best', '--merge-output-format', 'mp4'],
+  hd:  ['-f', 'b[height<=1080]/bv*[height<=1080]+ba/best[height<=1080]/best', '--merge-output-format', 'mp4'],
 };
 const files = new Map();
 let active = 0;
