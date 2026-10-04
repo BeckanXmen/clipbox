@@ -108,7 +108,7 @@ const BASE = [
   '--no-warnings', 
   '--socket-timeout', '20',
   '--age-limit', '99',
-  '--extractor-args', 'youtube:player_client=web,ios',
+  '--extractor-args', 'youtube:player_client=web_safari',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
 
