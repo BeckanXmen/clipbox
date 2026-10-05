@@ -110,9 +110,24 @@ const BASE = [
   '--no-warnings',
   '--socket-timeout', '20',
   '--age-limit', '99',
+
+  // Runtime JavaScript para YouTube
   '--js-runtimes', 'deno',
+
+  // Componentes EJS de yt-dlp
   '--remote-components', 'ejs:npm',
-  ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
+
+  // PO Token Provider de BgUtils
+  '--extractor-args',
+  'youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416',
+
+  // Cliente recomendado para el proveedor BgUtils
+  '--extractor-args',
+  'youtube:player_client=mweb',
+
+  ...(fs.existsSync(cookiesPath)
+    ? ['--cookies', cookiesPath]
+    : [])
 ];
 
 app.get('/api/health', (_, res) => res.json({ ok: true, authRequired: REQUIRE_AUTH }));
