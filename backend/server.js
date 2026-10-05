@@ -111,16 +111,18 @@ const BASE = [
   '--verbose',
   '--socket-timeout', '20',
   '--age-limit', '99',
+  '-4',
   '--js-runtimes', 'deno',
   '--remote-components', 'ejs:npm',
   '--extractor-args',
   'youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416',
   '--extractor-args',
-  'youtube:player_client=mweb',
+  'youtube:player_client=default,mweb',
   ...(fs.existsSync(cookiesPath)
     ? ['--cookies', cookiesPath]
     : [])
 ];
+
 app.get('/api/health', (_, res) => res.json({ ok: true, authRequired: REQUIRE_AUTH }));
 
 app.post('/api/analyze', auth, validate, async (req, res) => {
