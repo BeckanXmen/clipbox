@@ -111,6 +111,7 @@ const BASE = [
   '--socket-timeout', '20',
   '--age-limit', '99',
   '--js-runtimes', 'deno',
+  '--remote-components', 'ejs:npm',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
 
