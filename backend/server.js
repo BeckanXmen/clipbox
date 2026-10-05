@@ -106,11 +106,11 @@ function validate(req, res, next) {
 }
 
 const BASE = [
-  '--no-playlist', 
-  '--no-warnings', 
+  '--no-playlist',
+  '--no-warnings',
   '--socket-timeout', '20',
   '--age-limit', '99',
-  '--js-runtimes', 'node',
+  '--js-runtimes', 'deno',
   ...(fs.existsSync(cookiesPath) ? ['--cookies', cookiesPath] : [])
 ];
 
